@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亳州文旅数据可视化平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary: #8b0000; --gold: #d4af37; --bg-dark: #0f1115; --card-bg: #1a1d24; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: var(--bg-dark); color: #fff; overflow-x: hidden; }
+        
+        header { padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); position: fixed; width: 100%; z-index: 100; }
+        .logo { font-size: 1.5rem; color: var(--gold); font-weight: bold; letter-spacing: 2px; }
+        .nav-links a { color: #ccc; text-decoration: none; margin-left: 30px; transition: 0.3s; }
+        .nav-links a:hover { color: var(--gold); }
+
+        .hero { height: 100vh; display: flex; align-items: center; padding: 0 50px; background: radial-gradient(circle at center, #2a1a1a 0%, var(--bg-dark) 70%); }
+        .hero-text { flex: 1; }
+        .hero-text h1 { font-size: 3.5rem; line-height: 1.2; margin-bottom: 20px; }
+        .hero-text h1 span { color: var(--gold); }
+        .hero-text p { font-size: 1.2rem; color: #aaa; margin-bottom: 30px; max-width: 600px; }
+        .chart-container { flex: 1; height: 400px; }
+
+        .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 50px; margin-top: -50px; position: relative; z-index: 10; }
+        .metric-card { background: var(--card-bg); padding: 30px; border-radius: 12px; border-left: 4px solid var(--gold); text-align: center; transition: 0.3s; }
+        .metric-card:hover { transform: translateY(-5px); background: #22262e; }
+        .metric-card h2 { font-size: 2.5rem; color: var(--gold); margin-bottom: 10px; }
+        .metric-card p { color: #aaa; font-size: 1rem; }
+
+        .section-title { text-align: center; padding: 80px 0 40px; font-size: 2rem; color: var(--gold); }
+        .content-box { max-width: 1200px; margin: 0 auto; padding: 0 50px; }
+
+        /* 扩展1: 非遗传承梯队进度条 */
+        .progress-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; margin-bottom: 80px; }
+        .progress-item h3 { margin-bottom: 10px; color: #eee; font-size: 1.2rem; }
+        .progress-bar-bg { background: #333; border-radius: 10px; height: 20px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--gold)); border-radius: 10px; width: 0; transition: width 1.5s ease; }
+        .progress-stats { display: flex; justify-content: space-between; margin-top: 8px; color: #aaa; font-size: 0.9rem; }
+
+        /* 扩展2: 科技赋能时间轴 */
+        .timeline { position: relative; max-width: 800px; margin: 0 auto 80px; padding-left: 40px; border-left: 3px solid var(--gold); }
+        .timeline-item { position: relative; margin-bottom: 40px; padding-left: 30px; }
+        .timeline-item::before { content: ''; position: absolute; left: -49px; top: 5px; width: 16px; height: 16px; background: var(--gold); border-radius: 50%; border: 3px solid var(--bg-dark); }
+        .timeline-item h3 { color: var(--gold); margin-bottom: 8px; font-size: 1.3rem; }
+        .timeline-item p { color: #bbb; line-height: 1.6; }
+
+        /* 扩展3: 沉浸式演艺数据看板 */
+        .data-table { width: 100%; border-collapse: collapse; margin-bottom: 80px; background: var(--card-bg); border-radius: 12px; overflow: hidden; }
+        .data-table th, .data-table td { padding: 20px; text-align: left; border-bottom: 1px solid #333; }
+        .data-table th { background: rgba(139,0,0,0.3); color: var(--gold); font-weight: bold; }
+        .data-table tr:hover { background: rgba(255,255,255,0.05); }
+        .status-tag { padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; color: #fff; }
+        .status-hot { background: #e74c3c; }
+        .status-new { background: #2ecc71; }
+
+        /* 3D 翻转非遗卡片 */
+        .flip-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; padding-bottom: 80px; }
+        .flip-card { perspective: 1000px; height: 350px; cursor: pointer; }
+        .flip-card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.8s; transform-style: preserve-3d; }
+        .flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; overflow: hidden; }
+        .flip-card-front { background: #333; }
+        .flip-card-front img { width: 100%; height: 100%; object-fit: cover; }
+        .flip-card-back { background: var(--primary); transform: rotateY(180deg); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; }
+        .flip-card-back h3 { font-size: 1.5rem; margin-bottom: 15px; color: var(--gold); }
+        .flip-card-back p { font-size: 1rem; color: #eee; line-height: 1.6; }
+        .flip-card-back .data-tag { margin-top: 20px; background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; color: var(--gold); }
+
+        footer { text-align: center; padding: 40px; color: #555; border-top: 1px solid #222; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo"> 亳州文旅数字驾驶舱</div>
+        <div class="nav-links">
+            <a href="#">数据总览</a>
+            <a href="#">非遗图谱</a>
+            <a href="#">沉浸体验</a>
+            <a href="#">联系我们</a>
+        </div>
+    </header>
+
+    <!-- 1. 英雄区 -->
+    <section class="hero">
+        <div class="hero-text">
+            <h1>千年药都 · <span>数字焕新</span></h1>
+            <p>依托曹魏文化、老庄文化、中医药文化核心底蕴，亳州创新实施“文化保护+数字化活化”双轮驱动。通过构建数字名城管理平台，让沉睡的文物和非遗在云端“活”起来。</p>
+        </div>
+        <div id="radarChart" class="chart-container"></div>
+    </section>
+
+    <!-- 2. 核心数据指标卡 -->
+    <section class="metrics">
+        <div class="metric-card"><h2>273</h2><p>各级非遗项目总数</p></div>
+        <div class="metric-card"><h2>146</h2><p>历史建筑3D数字建档</p></div>
+        <div class="metric-card"><h2>60万+</h2><p>沉浸式景区年接待人次</p></div>
+        <div class="metric-card"><h2>4200万</h2><p>文旅融合带动消费(元)</p></div>
+    </section>
+
+    <!-- 3. 非遗传承数据柱状图 -->
+    <div class="section-title"> 非遗传承与活化数据看板</div>
+    <div class="content-box" style="height: 350px;" id="barChart"></div>
+
+    <!-- 【新增】4. 非遗传承梯队进度条 -->
+    <div class="section-title"> 非遗传承梯队建设</div>
+    <div class="content-box progress-section">
+        <div class="progress-item">
+            <h3>国家级非物质文化遗产</h3>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" data-width="85%"></div></div>
+            <div class="progress-stats"><span>核心保护项目</span><span>6项 (华佗五禽戏、古井贡酒等)</span></div>
+        </div>
+        <div class="progress-item">
+            <h3>省级非物质文化遗产</h3>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" data-width="65%"></div></div>
+            <div class="progress-stats"><span>重点培育项目</span><span>54项 (二夹弦、亳州剪纸等)</span></div>
+        </div>
+        <div class="progress-item">
+            <h3>市/县级非物质文化遗产</h3>
+            <div class="progress-bar-bg"><div class="progress-bar-fill" data-width="95%"></div></div>
+            <div class="progress-stats"><span>活态传承项目</span><span>213项 (涵盖民俗、传统技艺)</span></div>
+        </div>
+    </div>
+
+    <!-- 【新增】5. 文旅科技赋能时间轴 -->
+    <div class="section-title"> 亳州文旅“科技+”演变历程</div>
+    <div class="content-box timeline">
+        <div class="timeline-item">
+            <h3>2018年：数字化起步</h3>
+            <p>启动“数字名城”工程，完成花戏楼、曹操地下运兵道等核心景区的3D激光扫描与数字建档，为文物建立“数字身份证”。</p>
+        </div>
+        <div class="timeline-item">
+            <h3>2021年：沉浸式破局</h3>
+            <p>曹操地下运兵道推出《消失的曹操》微空间演艺，打破传统“静态观光”模式，开创“行进式+多分支”剧本杀先河。</p>
+        </div>
+        <div class="timeline-item">
+            <h3>2023年：夜游经济爆发</h3>
+            <p>花戏楼全面开启“白+黑”模式，引入3D Mapping光影秀与千人实景剧本杀，夜间客流量占比提升至40%。</p>
+        </div>
+        <div class="timeline-item">
+            <h3>2025年：元宇宙文旅探索</h3>
+            <p>上线“云游亳州”小程序，结合AR技术，游客在景区扫码即可观看华佗采药、曹操点兵的虚拟复原场景。</p>
+        </div>
+    </div>
+
+    <!-- 【新增】6. 沉浸式演艺数据看板 -->
+    <div class="section-title"> 核心沉浸式项目运营数据</div>
+    <div class="content-box">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>项目名称</th>
+                    <th>依托载体</th>
+                    <th>核心玩法</th>
+                    <th>年营收/客流</th>
+                    <th>市场热度</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>《消失的曹操》</td>
+                    <td>曹操地下运兵道</td>
+                    <td>微空间行进式演艺 / 多线剧情</td>
+                    <td>营收破百万 / 500+场</td>
+                    <td><span class="status-tag status-hot">爆款</span></td>
+                </tr>
+                <tr>
+                    <td>花戏楼奇幻夜游</td>
+                    <td>花戏楼景区</td>
+                    <td>光影秀 / 千人实景剧本杀</td>
+                    <td>夜游客流占比40%</td>
+                    <td><span class="status-tag status-hot">爆款</span></td>
+                </tr>
+                <tr>
+                    <td>华祖庵中医药研学</td>
+                    <td>华祖庵(华佗纪念馆)</td>
+                    <td>AR采药体验 / 五禽戏教学</td>
+                    <td>研学团队200+批</td>
+                    <td><span class="status-tag status-new">新锐</span></td>
+                </tr>
+                <tr>
+                    <td>古井酒文化博览园</td>
+                    <td>古井贡酒原址</td>
+                    <td>非遗酿造观摩 / 封坛体验</td>
+                    <td>年接待30万+人次</td>
+                    <td><span class="status-tag status-hot">经典</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 7. 3D 翻转非遗体验卡片 -->
+    <div class="section-title"> 鼠标悬停 · 探索非遗背后的故事</div>
+    <div class="content-box flip-grid">
+        <div class="flip-card">
+            <div class="flip-card-inner">
+                <div class="flip-card-front"><img src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=600&q=80" alt="五禽戏"></div>
+                <div class="flip-card-back">
+                    <h3>华佗五禽戏</h3>
+                    <p>神医华佗创编的传统养生功法。亳州正积极推动其进校园、进社区，开设公益培训课程。</p>
+                    <div class="data-tag"><i class="fas fa-users"></i> 累计培训学员 30,000+ 名</div>
+                </div>
+            </div>
+        </div>
+        <div class="flip-card">
+            <div class="flip-card-inner">
+                <div class="flip-card-front"><img src="https://images.unsplash.com/photo-1599571234909-29ed5d1321d6?auto=format&fit=crop&w=600&q=80" alt="运兵道"></div>
+                <div class="flip-card-back">
+                    <h3>《消失的曹操》</h3>
+                    <p>依托曹操地下运兵道，打造国内首个三国历史沉浸式微空间体验剧，多线剧情分支互动。</p>
+                    <div class="data-tag"><i class="fas fa-ticket-alt"></i> 累计演出 500+ 场，营收破百万</div>
+                </div>
+            </div>
+        </div>
+        <div class="flip-card">
+            <div class="flip-card-inner">
+                <div class="flip-card-front"><img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=600&q=80" alt="古井贡酒"></div>
+                <div class="flip-card-back">
+                    <h3>古井贡酒酿造技艺</h3>
+                    <p>传承千年的蒸馏酒传统酿造技艺，“九酝酒法”获吉尼斯认证，深化酒文旅融合。</p>
+                    <div class="data-tag"><i class="fas fa-industry"></i> 建成白酒非遗工坊 8 个</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>&copy; 2026 亳州文旅数据可视化平台 | 网页设计课程汇报演示</footer>
+
+    <script>
+        // 1. 雷达图
+        var radarChart = echarts.init(document.getElementById('radarChart'));
+        radarChart.setOption({
+            backgroundColor: 'transparent',
+            radar: {
+                indicator: [
+                    { name: '中医药文化', max: 100 }, { name: '曹魏文化', max: 100 },
+                    { name: '老庄文化', max: 100 }, { name: '酒文化', max: 100 },
+                    { name: '数字科技赋能', max: 100 }
+                ],
+                shape: 'polygon',
+                axisName: { color: '#fff' },
+                splitArea: { areaStyle: { color: ['rgba(139,0,0,0.1)', 'rgba(139,0,0,0.2)'] } }
+            },
+            series: [{ type: 'radar', data: [{ value: [95, 85, 80, 90, 88], name: '亳州文旅指数', areaStyle: { color: 'rgba(212, 175, 55, 0.4)' }, lineStyle: { color: '#d4af37' } }] }]
+        });
+
+        // 2. 柱状图
+        var barChart = echarts.init(document.getElementById('barChart'));
+        barChart.setOption({
+            backgroundColor: 'transparent', tooltip: {},
+            xAxis: { type: 'category', data: ['国家级非遗', '省级非遗', '市级非遗', '数字建档建筑', '特色文创产品'], axisLabel: { color: '#aaa' } },
+            yAxis: { type: 'value', axisLabel: { color: '#aaa' }, splitLine: { lineStyle: { color: '#333' } } },
+            series: [{
+                data: [6, 54, 213, 146, 300], type: 'bar', barWidth: '40%',
+                itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: '#d4af37' }, { offset: 1, color: '#8b0000' }]) }
+            }]
+        });
+
+        // 【新增】3. 进度条滚动动画
+        window.addEventListener('scroll', () => {
+            document.querySelectorAll('.progress-bar-fill').forEach(bar => {
+                const rect = bar.getBoundingClientRect();
+                if (rect.top < window.innerHeight && rect.bottom > 0) {
+                    bar.style.width = bar.getAttribute('data-width');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
